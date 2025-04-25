@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"debug/pe"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -16,6 +15,7 @@ import (
 	"unicode/utf16"
 
 	"github.com/rogpeppe/go-internal/diff"
+	"github.com/willscott/pefile-go"
 )
 
 // architectures
@@ -196,17 +196,13 @@ func colordiff(w io.Writer, indent string, oldName string, old []byte, newName s
 
 // peImports gets the list of imported libraries for a DLL or EXE.
 func peImports(name string) ([]string, error) {
-	f, err := os.Open(name)
+	pe, err := pefile.NewPEFile(name)
 	if err != nil {
 		return nil, err
 	}
-	pf, err := pe.NewFile(f)
-	if err != nil {
-		return nil, err
-	}
-	libs, err := pf.ImportedLibraries()
-	if err != nil {
-		return nil, err
+	var libs []string
+	for _, imp := range pe.ImportDescriptors {
+		libs = append(libs, string(imp.Dll))
 	}
 	return libs, nil
 }

@@ -39,9 +39,11 @@ import (
 	"io/fs"
 	"iter"
 	"log/slog"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -122,32 +124,6 @@ func run() error {
 		return err
 	}
 
-	if *Optimize {
-		slog.Info("removing wow64")
-		if err := os.RemoveAll(filepath.Join(*Prefix, "lib/wine/i386-windows")); err != nil && !errors.Is(err, os.ErrNotExist) {
-			return err
-		}
-
-		if arm64 {
-			slog.Info("removing 32-bit arm support")
-			for _, name := range []string{
-				"lib/libqemu-arm.so",
-				"lib/libqemu-i386.so",
-				"lib/libqemu-x86_64.so",
-				"lib/wine/aarch64-unix/wowarmhw.so",
-				"lib/wine/aarch64-unix/wowarmhw.so",
-				"lib/wine/aarch64-windows/lib/wowarmhw.dll",
-				"lib/wine/aarch64-windows/lib/wowarmhw.dll",
-			} {
-				path := filepath.Join(*Prefix, name)
-				slog.Debug("delete", "path", path)
-				if err := os.RemoveAll(path); err != nil {
-					return err
-				}
-			}
-		}
-	}
-
 	slog.Info("removing static libs")
 	if err := filepath.WalkDir(filepath.Join(*Prefix, "lib/wine"), func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -159,7 +135,6 @@ func run() error {
 		if filepath.Ext(path) != ".a" {
 			return nil
 		}
-		slog.Debug("delete", "path", path)
 		return os.Remove(path)
 	}); err != nil {
 		return err
@@ -174,6 +149,23 @@ func run() error {
 			return nil
 		}
 		if filepath.Ext(path) != ".ax" {
+			return nil
+		}
+		slog.Debug("delete", "path", path)
+		return os.Remove(path)
+	}); err != nil {
+		return err
+	}
+
+	slog.Info("removing control panel items")
+	if err := filepath.WalkDir(filepath.Join(*Prefix, "lib/wine"), func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if filepath.Ext(path) != ".cpl" {
 			return nil
 		}
 		slog.Debug("delete", "path", path)
@@ -267,6 +259,193 @@ func run() error {
 			slog.Debug("removing driver", "name", filepath.Base(path))
 			return os.Remove(path)
 		}); err != nil {
+			return err
+		}
+	}
+
+	if *Optimize {
+		slog.Info("removing wow64 libs")
+		if err := os.RemoveAll(filepath.Join(*Prefix, "lib/wine/i386-windows")); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+
+		slog.Info("removing unnecessary libs")
+		if err := filepath.WalkDir(filepath.Join(*Prefix, "lib/wine"), func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() {
+				return nil
+			}
+			if !slices.ContainsFunc([]string{
+				// d3d/d2d/ddraw/dmusic/opengl/opencl/vulkan stuff (it's big,
+				// and it's definitely completely useless without the
+				// non-nulldrv graphics drivers anyways)
+				"d3d",
+				"d2d",
+				"dxgi",
+				"ddraw",
+				"dmusic",
+				"dplay",
+				"qedit",
+				"winevulkan",
+				"wined3d",
+				"opencl",
+				"opengl",
+				"vulkan",
+
+				// xaudio/xactengine/xapofx/x3daudio
+				"xaudio",
+				"xactengine",
+				"xapofx",
+				"x3daudio",
+
+				// wow64
+				"wow64",
+
+				// some more interactive stuff
+				"comdlg32.",
+				"riched20.",
+				"ieframe.",
+				"ieproxy.",
+				"browseui.",
+				"scrrun.",
+				"cryptdlg.",
+				"rasdlg.",
+				"scarddlg.",
+				"hhctrl.",
+				"dhtmled.",
+				"regedit.",
+				"mshta.",
+
+				// print/scan/telephony/smartcard/media/speech/webcam stuff
+				"tapi32.",
+				"sane.",
+				"twain_32.",
+				"gphoto2.",
+				"wiaservc.",
+				"sapi.",
+				"twinapi.",
+				"winprint.",
+				"localspl.",
+				"winscard.",
+				"ctapi32.",
+				"winegstreamer.",
+				"wmphoto.",
+				"msttsengine.",
+				"qcap.",
+				"wmp.",
+				"windows.gaming.input.",
+				"windows.media.speech.",
+				"mfmediaengine.",
+				"mfreadwrite.",
+
+				// misc
+				"msi.",
+				"wscript.",
+				"cscript.",
+				"jscript.",
+				"vbscript.",
+				"dwrite.",
+				"gdiplus.",
+				"winhlp32.",
+				"oledb32.",
+				"odbc32.",
+				"l3codeca.",
+				"wpcap.",
+			}, func(x string) bool {
+				return strings.HasPrefix(d.Name(), x)
+			}) {
+				return nil
+			}
+			slog.Debug("removing", "name", d.Name())
+			return os.Remove(path)
+		}); err != nil {
+			return err
+		}
+
+		if arm64 {
+			slog.Info("removing 32-bit arm support")
+			for _, name := range []string{
+				"lib/libqemu-arm.so",
+				"lib/libqemu-i386.so",
+				"lib/libqemu-x86_64.so",
+				"lib/wine/aarch64-unix/wowarmhw.so",
+				"lib/wine/aarch64-unix/wowarmhw.so",
+				"lib/wine/aarch64-windows/lib/wowarmhw.dll",
+				"lib/wine/aarch64-windows/lib/wowarmhw.dll",
+			} {
+				path := filepath.Join(*Prefix, name)
+				slog.Debug("delete", "path", path)
+				if err := os.RemoveAll(path); err != nil {
+					return err
+				}
+			}
+		}
+
+		slog.Info("removing dlls/exes which depend on removed stuff")
+		if err := func() error {
+			dir := filepath.Join(*Prefix, "lib/wine", archt("x86_64-windows", "aarch64-windows"))
+
+			dis, err := os.ReadDir(dir)
+			if err != nil {
+				return err
+			}
+
+			uncase := map[string]string{}
+			for _, di := range dis {
+				uncase[strings.ToLower(di.Name())] = di.Name()
+			}
+
+			dlldeps := map[string][]string{}
+			for _, di := range dis {
+				if di.IsDir() {
+					continue
+				}
+				switch filepath.Ext(di.Name()) {
+				case ".dll":
+				case ".exe":
+				default:
+					continue
+				}
+				if di.Name() == "explorer.exe" {
+					continue // this one is special
+				}
+				deps, err := peImports(filepath.Join(dir, di.Name()))
+				if err != nil {
+					return fmt.Errorf("get deps for %q: %w", di.Name(), err)
+				}
+				for i, dep := range deps {
+					deps[i] = strings.ToLower(dep)
+				}
+				dlldeps[strings.ToLower(di.Name())] = deps
+				fmt.Println(di.Name(), deps)
+			}
+
+			var it int
+			for {
+				remove := map[string][]string{}
+				for _, name := range slices.Sorted(maps.Keys(dlldeps)) { // sorted so it's deterministic if there are errors
+					for _, dep := range dlldeps[name] {
+						if _, ok := dlldeps[dep]; !ok {
+							remove[name] = append(remove[name], dep)
+						}
+					}
+				}
+				if len(remove) == 0 {
+					break
+				}
+				for name, deps := range remove {
+					slog.Debug("removing", "iteration", it, "name", name, "broken_deps", deps)
+					if err := os.Remove(filepath.Join(dir, uncase[name])); err != nil {
+						return err
+					}
+					delete(dlldeps, name)
+				}
+				it++
+			}
+			return nil
+		}(); err != nil {
 			return err
 		}
 	}
