@@ -419,7 +419,7 @@ func run() error {
 					deps[i] = strings.ToLower(dep)
 				}
 				dlldeps[strings.ToLower(di.Name())] = deps
-				fmt.Println(di.Name(), deps)
+				//fmt.Println(di.Name(), deps)
 			}
 
 			var it int
@@ -455,18 +455,46 @@ func run() error {
 	// 	- a little bit of extra tidying
 	if err := transform(filepath.Join(*Prefix, "share/wine/wine.inf"),
 		trdiff(infilt(func(emit func(section string, line string), inf iter.Seq2[string, string]) error {
+			services := "BITS|EventLog|HTTP|MSI|NDIS|NsiProxy|RpcSs|ScardSvr|Spooler|Winmgmt|Sti|PlugPlay|WPFFontCache|LanmanServer|FontCache|TaskScheduler|wuau|Terminal"
 			for section, line := range inf {
+				{
+					var keep bool
+					switch {
+					case strings.HasSuffix(section, "Install.NT"):
+					case strings.HasSuffix(section, "Install.NT.Services"):
+					case (!arm64 || *Optimize) && strings.HasSuffix(section, "Install.ntarm"):
+					case (!arm64 || *Optimize) && strings.HasSuffix(section, "Install.ntarm.Services"):
+					case !arm64 && strings.HasSuffix(section, "Install.ntarm64"):
+					case !arm64 && strings.HasSuffix(section, "Install.ntarm64.Services"):
+					case *Optimize && strings.Contains(section, "CurrentVersionWow64"):
+					case regex(`^(` + services + `)(Services?|ServiceKeys)$`).MatchString(section):
+					default:
+						keep = true
+					}
+					if !keep {
+						continue // ignore entire section
+					}
+				}
 				if line != "" {
 					var keep bool
 					switch {
 					default:
 						keep = true
+					case strings.Contains(line, "winemenubuilder"):
 					case *Optimize && section == "Wow64":
 					case *Optimize && section == "FakeDllsWow64":
 					case *Optimize && section == "FakeDllsWin32":
 					case *Optimize && section == "Tapi": // telephony
 					case *Optimize && section == "DirectX":
-					} // TODO: more
+					case *Optimize && regex(`CurrentVersionWow64.[^.]+,`).MatchString(line):
+					case regex(`(^|[^a-z])wineps\.drv`).MatchString(line):
+					case regex(`(^|[^a-z])(sane|gphoto2)\.ds`).MatchString(line):
+					case regex(`(^|[^a-z])(input|winebus|winebth|winehid|wineusb|winexinput)\.inf`).MatchString(line):
+					case regex(`(^|[^a-z])(oledb32|msdaps|msdasql|msado15|winprint|sapi)\.dll`).MatchString(line):
+					case regex(`(^|[^a-z])(wmplayer|wordpad|iexplore)\.exe`).MatchString(line):
+					case regex(`^system\.ini,\s*(mci|drivers32|mail)`).MatchString(line):
+					case regex(`^AddService=.+,(` + services + `)(Services?)$`).MatchString(section):
+					}
 					if !keep {
 						continue // ignore section contents
 					}
@@ -479,13 +507,30 @@ func run() error {
 		return err
 	}
 
+	// TODO: create a wineprefix and disable automatic prefix updates
+	if *Optimize {
+		// TODO: clean up empty dirs
+	}
+	// TODO: replace duplicated files in the prefix with symlinks
+	// TODO: set some registry keys required for nswrap
+
+	// TODO: ensure we have some must-have dlls for northstar
+
+	if *Vendor {
+		// TODO: copy non-libc libraries into our lib dir
+		// TODO: ensure we have some libs we know we need
+	}
+
+	// TODO: replace this with a go impl
 	if tmp, err := exec.Command("du", "-sh", *Prefix).Output(); err == nil {
 		slog.Info(string(bytes.TrimSpace(tmp)))
 	}
 	if tmp, err := exec.Command("du", "-sh", *Output).Output(); err == nil {
 		slog.Info(string(bytes.TrimSpace(tmp)))
 	}
-	// TODO: everything else
+	if tmp, err := exec.Command("find", *Prefix).Output(); err == nil {
+		slog.Info(string(bytes.TrimSpace(tmp)))
+	}
 
 	return errors.ErrUnsupported
 }

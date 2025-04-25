@@ -8,10 +8,12 @@ import (
 	"io"
 	"iter"
 	"os"
+	"regexp"
 	"runtime"
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode/utf16"
 
 	"github.com/rogpeppe/go-internal/diff"
@@ -205,4 +207,14 @@ func peImports(name string) ([]string, error) {
 		libs = append(libs, string(imp.Dll))
 	}
 	return libs, nil
+}
+
+var reCache sync.Map
+
+func regex(re string) *regexp.Regexp {
+	v, ok := reCache.Load(re)
+	if !ok {
+		v, _ = reCache.LoadOrStore(re, regexp.MustCompile(re))
+	}
+	return v.(*regexp.Regexp)
 }
