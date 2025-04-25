@@ -17,8 +17,7 @@ ARG DEBIAN_CODENAME="bookworm"
 ARG NSWINEOPT="-optimize -vendor"
 
 # note: the dependency list will need to be updated manually if wine changes
-# TODO: finish this
-# TODO: automate this somehow or maybe just install the entire package
+# TODO: install the wine debs with all deps instead (but still manually extract them to another folder for nswine to process)
 ARG NSWINESYSDEP="libunwind8 libgnutls30"
 
 # note: you'll need qemu-binfmt-static (and if you get "no such file or directory", your qemu is dynamically linked)
@@ -75,21 +74,21 @@ COPY --link --from=wine-arm64 /wine /arm64
 
 # build wine runtime on amd64 (binfmt)
 FROM toolchain-amd64 AS nswine-amd64
-COPY --link --from=nswinebuild-amd64 /nswine /usr/local/bin/nswine
-COPY --link --from=wine-amd64 /wine /wine
 ARG NSWINESYSDEP
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ${NSWINESYSDEP}
+COPY --link --from=nswinebuild-amd64 /nswine /usr/local/bin/nswine
+COPY --link --from=wine-amd64 /wine /wine
 ARG NSWINEOPT
-RUN nswine -prefix=/wine/opt/wine-devel -output=/opt/northstar-runtime ${NSWINEOPT}
+RUN DOCKER=1 nswine -prefix=/wine/opt/wine-devel -output=/opt/northstar-runtime ${NSWINEOPT}
 
 # build wine runtime on arm64 (binfmt)
 FROM toolchain-arm64 AS nswine-arm64
-COPY --link --from=nswinebuild-arm64 /nswine /usr/local/bin/nswine
-COPY --link --from=wine-arm64 /wine /wine
 ARG NSWINESYSDEP
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ${NSWINESYSDEP}
+COPY --link --from=nswinebuild-arm64 /nswine /usr/local/bin/nswine
+COPY --link --from=wine-arm64 /wine /wine
 ARG NSWINEOPT
-RUN nswine -prefix=/wine/usr -output=/opt/northstar-runtime ${NSWINEOPT}
+RUN DOCKER=1 nswine -prefix=/wine/usr -output=/opt/northstar-runtime ${NSWINEOPT}
 
 # collect wine runtime artifacts (useful for development)
 # docker buildx build --progress plain --target nswine --output build/nswine .

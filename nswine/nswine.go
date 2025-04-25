@@ -36,11 +36,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"iter"
 	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -48,7 +50,7 @@ import (
 )
 
 var (
-	Prefix   = flag.String("prefix", "/usr", "wine install prefix (will be modified in-place)")
+	Prefix   = flag.String("prefix", "/wine", "wine install prefix (will be modified in-place and must not contain non-wine files)")
 	Output   = flag.String("output", "/opt/northstar-runtime", "output directory")
 	Optimize = flag.Bool("optimize", false, "remove unused libraries and services")
 	Vendor   = flag.Bool("vendor", false, "copy native libs from the build host")
@@ -60,6 +62,7 @@ func main() {
 	slog.SetDefault(slog.New(tint.NewHandler(os.Stdout, &tint.Options{
 		AddSource:  true,
 		TimeFormat: time.Kitchen,
+		Level:      slog.LevelDebug,
 	})))
 
 	if err := run(); err != nil {
@@ -69,9 +72,15 @@ func main() {
 }
 
 func run() error {
+	if v, _ := strconv.ParseBool(os.Getenv("NSWINE_UNSAFE")); !v {
+		if v, _ := strconv.ParseBool(os.Getenv("DOCKER")); !v {
+			return fmt.Errorf("this is not usually safe to run outside a container")
+		}
+	}
+
 	slog.Info("getting wine version")
 	var wineBuildID string
-	if buf, err := exec.Command(filepath.Join(*Prefix, "bin", "wine"), "--version").Output(); err != nil {
+	if buf, err := exec.Command(filepath.Join(*Prefix, "bin/wine"), "--version").Output(); err != nil {
 		if xx, ok := err.(*exec.ExitError); ok {
 			err = fmt.Errorf("%v (stderr: %q)", err, xx.Stderr)
 		}
@@ -84,9 +93,8 @@ func run() error {
 	// TODO: patch unix/ntdll.so asciiz string "wine-#.## (Type)" kind of thing (wine --version output) to change the output of wine_get_build_id to "nsSHA[:7]"
 
 	slog.Info("patching default graphics driver to null")
-	// this is the only way other than recompiling to get it to use nulldrv
-	// during prefix initialization
-	if err := transform(filepath.Join(*Prefix, "lib", "wine", archt("x86_64-windows", "aarch64-windows"), "explorer.exe"), func(buf []byte) ([]byte, error) {
+	// 	- this is the only way other than recompiling to get it to use nulldrv during prefix initialization
+	if err := transform(filepath.Join(*Prefix, "lib/wine", archt("x86_64-windows", "aarch64-windows"), "explorer.exe"), func(buf []byte) ([]byte, error) {
 		i := bytes.Index(buf, u8to16[string, []byte]("mac,x11,wayland\x00"))
 		if i == -1 {
 			return nil, fmt.Errorf("couldn't find default graphics driver value")
@@ -97,10 +105,176 @@ func run() error {
 		return err
 	}
 
+	slog.Info("removing manpages")
+	if err := os.RemoveAll(filepath.Join(*Prefix, "share/man")); err != nil {
+		return err
+	}
+	slog.Info("removing doc")
+	if err := os.RemoveAll(filepath.Join(*Prefix, "share/doc")); err != nil {
+		return err
+	}
+	slog.Info("removing desktop entries")
+	if err := os.RemoveAll(filepath.Join(*Prefix, "share/applications")); err != nil {
+		return err
+	}
+	slog.Info("removing headers")
+	if err := os.RemoveAll(filepath.Join(*Prefix, "include")); err != nil {
+		return err
+	}
+
+	if *Optimize {
+		slog.Info("removing wow64")
+		if err := os.RemoveAll(filepath.Join(*Prefix, "lib/wine/i386-windows")); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+
+		if arm64 {
+			slog.Info("removing 32-bit arm support")
+			for _, name := range []string{
+				"lib/libqemu-arm.so",
+				"lib/libqemu-i386.so",
+				"lib/libqemu-x86_64.so",
+				"lib/wine/aarch64-unix/wowarmhw.so",
+				"lib/wine/aarch64-unix/wowarmhw.so",
+				"lib/wine/aarch64-windows/lib/wowarmhw.dll",
+				"lib/wine/aarch64-windows/lib/wowarmhw.dll",
+			} {
+				path := filepath.Join(*Prefix, name)
+				slog.Debug("delete", "path", path)
+				if err := os.RemoveAll(path); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	slog.Info("removing static libs")
+	if err := filepath.WalkDir(filepath.Join(*Prefix, "lib/wine"), func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if filepath.Ext(path) != ".a" {
+			return nil
+		}
+		slog.Debug("delete", "path", path)
+		return os.Remove(path)
+	}); err != nil {
+		return err
+	}
+
+	slog.Info("removing directshow filters")
+	if err := filepath.WalkDir(filepath.Join(*Prefix, "lib/wine"), func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if filepath.Ext(path) != ".ax" {
+			return nil
+		}
+		slog.Debug("delete", "path", path)
+		return os.Remove(path)
+	}); err != nil {
+		return err
+	}
+
+	slog.Info("removing wine-mono and wine-gecko stubs")
+	if err := filepath.WalkDir(filepath.Join(*Prefix, "lib/wine"), func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if !strings.HasPrefix(d.Name(), "mscoree.") && !strings.HasPrefix(d.Name(), "mshtml.") {
+			return nil
+		}
+		slog.Debug("delete", "path", path)
+		return os.Remove(path)
+	}); err != nil {
+		return err
+	}
+
+	slog.Info("removing winemenubuilder")
+	if err := filepath.WalkDir(filepath.Join(*Prefix, "lib/wine"), func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if !strings.HasPrefix(d.Name(), "winemenubuilder.") {
+			return nil
+		}
+		slog.Debug("delete", "path", path)
+		return os.Remove(path)
+	}); err != nil {
+		return err
+	}
+
+	if *Optimize {
+		slog.Info("removing unnecessary drivers")
+		if err := filepath.WalkDir(filepath.Join(*Prefix, "lib/wine"), func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() {
+				return nil
+			}
+			switch filepath.Ext(path) {
+			case ".sys":
+			case ".drv":
+			default:
+				return nil
+			}
+			switch filepath.Base(path) {
+			default:
+				return fmt.Errorf("TODO: is the driver %s needed?", path)
+			case "msacm32.drv":
+				return nil // keep
+			case "mountmgr.sys":
+				return nil // keep mountmgr since it's used internally for a lot of stuff (e.g., virtual drive info, creating links)
+			case "ksecdd.sys":
+			case "winspool.drv":
+			case "winebus.sys":
+			case "tdi.sys":
+			case "usbd.sys":
+			case "nsiproxy.sys":
+			case "cng.sys":
+			case "ndis.sys":
+			case "http.sys":
+			case "mouhid.sys":
+			case "winehid.sys":
+			case "hidparse.sys":
+			case "winepulse.drv":
+			case "wineusb.sys":
+			case "wineps.drv":
+			case "scsiport.sys":
+			case "fltmgr.sys":
+			case "winealsa.drv":
+			case "winexinput.sys":
+			case "winex11.drv":
+			case "hidclass.sys":
+			case "winebth.sys":
+			case "wmilib.sys":
+			case "netio.sys":
+			case "winewayland.drv":
+			}
+			slog.Debug("removing driver", "name", filepath.Base(path))
+			return os.Remove(path)
+		}); err != nil {
+			return err
+		}
+	}
+
 	slog.Info("patching wine.inf")
 	// 	- mostly so wineboot doesn't complain as much or error out
 	// 	- a little bit of extra tidying
-	if err := transform(filepath.Join(*Prefix, "share", "wine", "wine.inf"),
+	if err := transform(filepath.Join(*Prefix, "share/wine/wine.inf"),
 		trdiff(infilt(func(emit func(section string, line string), inf iter.Seq2[string, string]) error {
 			for section, line := range inf {
 				if line != "" {
@@ -113,7 +287,7 @@ func run() error {
 					case *Optimize && section == "FakeDllsWin32":
 					case *Optimize && section == "Tapi": // telephony
 					case *Optimize && section == "DirectX":
-					}
+					} // TODO: more
 					if !keep {
 						continue // ignore section contents
 					}
@@ -126,6 +300,13 @@ func run() error {
 		return err
 	}
 
+	if tmp, err := exec.Command("du", "-sh", *Prefix).Output(); err == nil {
+		slog.Info(string(bytes.TrimSpace(tmp)))
+	}
+	if tmp, err := exec.Command("du", "-sh", *Output).Output(); err == nil {
+		slog.Info(string(bytes.TrimSpace(tmp)))
+	}
 	// TODO: everything else
+
 	return errors.ErrUnsupported
 }
