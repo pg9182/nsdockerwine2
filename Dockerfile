@@ -14,11 +14,7 @@ ARG DEBIAN="12"
 ARG DEBIAN_CODENAME="bookworm"
 
 # nswine options
-ARG NSWINEOPT="-optimize -vendor"
-
-# note: the dependency list will need to be updated manually if wine changes
-# TODO: install the wine debs with all deps instead (but still manually extract them to another folder for nswine to process)
-ARG NSWINESYSDEP="libunwind8 libgnutls30"
+ARG NSWINEOPT="-optimize -vendor -debug"
 
 # note: you'll need qemu-binfmt-static (and if you get "no such file or directory", your qemu is dynamically linked)
 
@@ -44,18 +40,21 @@ COPY --link --from=nswinebuild-amd64 /nswine /amd64/nswine
 COPY --link --from=nswinebuild-arm64 /nswine /arm64/nswine
 
 # download wine for amd64
-FROM toolchain-host AS wine-amd64
+FROM toolchain-amd64 AS wine-amd64
 ARG WINE
 ARG DEBIAN_CODENAME
 ARG MIRROR
 RUN wget --quiet --show-progress --progress=bar:force:noscroll \
     https://dl.winehq.org/wine-builds/debian/dists/${DEBIAN_CODENAME}/main/binary-amd64/winehq-devel_${WINE}~${DEBIAN_CODENAME}-1_amd64.deb \
     https://dl.winehq.org/wine-builds/debian/dists/${DEBIAN_CODENAME}/main/binary-amd64/wine-devel_${WINE}~${DEBIAN_CODENAME}-1_amd64.deb \
-    https://dl.winehq.org/wine-builds/debian/dists/${DEBIAN_CODENAME}/main/binary-amd64/wine-devel-amd64_${WINE}~${DEBIAN_CODENAME}-1_amd64.deb
-RUN for x in *.deb; do dpkg-deb -x "$x" /wine; done
+    https://dl.winehq.org/wine-builds/debian/dists/${DEBIAN_CODENAME}/main/binary-amd64/wine-devel-amd64_${WINE}~${DEBIAN_CODENAME}-1_amd64.deb \
+    https://dl.winehq.org/wine-builds/debian/dists/${DEBIAN_CODENAME}/main/binary-i386/wine-devel-i386_${WINE}~${DEBIAN_CODENAME}-1_i386.deb
+RUN for x in *.deb; do dpkg-deb -vx "$x" /wine; done
+RUN dpkg --add-architecture i386
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt install -fy ./*.deb
 
 # download wine for arm64
-FROM toolchain-host AS wine-arm64
+FROM toolchain-arm64 AS wine-arm64
 ARG WINE
 ARG HANGOVER
 ARG DEBIAN
@@ -65,6 +64,7 @@ RUN wget --quiet --show-progress --progress=bar:force:noscroll \
     https://github.com/AndreRH/hangover/releases/download/hangover-${WINE}${HANGOVER:+.}${HANGOVER}/hangover_${WINE}${HANGOVER:+.}${HANGOVER}_debian${DEBIAN}_${DEBIAN_CODENAME}_arm64.tar
 RUN tar xvf hangover_${WINE}${HANGOVER:+.}${HANGOVER}_debian${DEBIAN}_${DEBIAN_CODENAME}_arm64.tar
 RUN for x in *.deb; do dpkg-deb -x "$x" /wine; done
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt install -fy ./*.deb
 
 # collect wine artifacts (useful for development)
 # docker buildx build --progress plain --target wine --output build/wine .
@@ -73,20 +73,14 @@ COPY --link --from=wine-amd64 /wine /amd64
 COPY --link --from=wine-arm64 /wine /arm64
 
 # build wine runtime on amd64 (binfmt)
-FROM toolchain-amd64 AS nswine-amd64
-ARG NSWINESYSDEP
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ${NSWINESYSDEP}
+FROM wine-amd64 AS nswine-amd64
 COPY --link --from=nswinebuild-amd64 /nswine /usr/local/bin/nswine
-COPY --link --from=wine-amd64 /wine /wine
 ARG NSWINEOPT
 RUN DOCKER=1 nswine -prefix=/wine/opt/wine-devel -output=/opt/northstar-runtime ${NSWINEOPT}
 
 # build wine runtime on arm64 (binfmt)
-FROM toolchain-arm64 AS nswine-arm64
-ARG NSWINESYSDEP
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ${NSWINESYSDEP}
+FROM wine-arm64 AS nswine-arm64
 COPY --link --from=nswinebuild-arm64 /nswine /usr/local/bin/nswine
-COPY --link --from=wine-arm64 /wine /wine
 ARG NSWINEOPT
 RUN DOCKER=1 nswine -prefix=/wine/usr -output=/opt/northstar-runtime ${NSWINEOPT}
 

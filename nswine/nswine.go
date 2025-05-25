@@ -55,16 +55,21 @@ var (
 	Prefix   = flag.String("prefix", "/wine", "wine install prefix (will be modified in-place and must not contain non-wine files)")
 	Output   = flag.String("output", "/opt/northstar-runtime", "output directory")
 	Optimize = flag.Bool("optimize", false, "remove unused libraries and services")
+	Debug    = flag.Bool("debug", false, "debug logging")
 	Vendor   = flag.Bool("vendor", false, "copy native libs from the build host")
 )
 
 func main() {
 	flag.Parse()
 
+	level := slog.LevelInfo
+	if *Debug {
+		level = slog.LevelDebug
+	}
 	slog.SetDefault(slog.New(tint.NewHandler(os.Stdout, &tint.Options{
 		AddSource:  true,
 		TimeFormat: time.Kitchen,
-		Level:      slog.LevelDebug,
+		Level:      level,
 	})))
 
 	if err := run(); err != nil {
@@ -105,6 +110,28 @@ func run() error {
 		return buf, nil
 	}); err != nil {
 		return err
+	}
+
+	if *Optimize {
+		slog.Info("removing non-essential executables")
+		if err := filepath.WalkDir(filepath.Join(*Prefix, "bin"), func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() {
+				return nil
+			}
+			switch d.Name() {
+			case "wine":
+				return nil
+			case "wineserver":
+				return nil
+			}
+			slog.Debug("delete", "path", path)
+			return os.Remove(path)
+		}); err != nil {
+			return err
+		}
 	}
 
 	slog.Info("removing manpages")
@@ -268,6 +295,9 @@ func run() error {
 		if err := os.RemoveAll(filepath.Join(*Prefix, "lib/wine/i386-windows")); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
+		if err := os.RemoveAll(filepath.Join(*Prefix, "lib/wine/i386-unix")); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
 
 		slog.Info("removing unnecessary libs")
 		if err := filepath.WalkDir(filepath.Join(*Prefix, "lib/wine"), func(path string, d fs.DirEntry, err error) error {
@@ -381,6 +411,17 @@ func run() error {
 					return err
 				}
 			}
+		} else {
+			slog.Info("removing 32-bit support")
+			for _, name := range []string{
+				"lib/wine/aarch64-windows/lib/wow64cpu.dll",
+			} {
+				path := filepath.Join(*Prefix, name)
+				slog.Debug("delete", "path", path)
+				if err := os.RemoveAll(path); err != nil {
+					return err
+				}
+			}
 		}
 
 		slog.Info("removing dlls/exes which depend on removed stuff")
@@ -467,6 +508,9 @@ func run() error {
 					case !arm64 && strings.HasSuffix(section, "Install.ntarm64"):
 					case !arm64 && strings.HasSuffix(section, "Install.ntarm64.Services"):
 					case *Optimize && strings.Contains(section, "CurrentVersionWow64"):
+					case *Optimize && strings.Contains(section, "Wow64Install"):
+					case *Optimize && strings.Contains(section, "FakeDllsWin32"):
+					case *Optimize && strings.Contains(section, "FakeDllsWow64"):
 					case regex(`^(` + services + `)(Services?|ServiceKeys)$`).MatchString(section):
 					default:
 						keep = true
@@ -481,15 +525,12 @@ func run() error {
 					default:
 						keep = true
 					case strings.Contains(line, "winemenubuilder"):
-					case *Optimize && section == "Wow64":
-					case *Optimize && section == "FakeDllsWow64":
-					case *Optimize && section == "FakeDllsWin32":
 					case *Optimize && section == "Tapi": // telephony
 					case *Optimize && section == "DirectX":
 					case *Optimize && regex(`CurrentVersionWow64.[^.]+,`).MatchString(line):
 					case regex(`(^|[^a-z])wineps\.drv`).MatchString(line):
 					case regex(`(^|[^a-z])(sane|gphoto2)\.ds`).MatchString(line):
-					case regex(`(^|[^a-z])(input|winebus|winebth|winehid|wineusb|winexinput)\.inf`).MatchString(line):
+					case regex(`(^|[^a-z])(input|winebus|winebth|winehid|mouhid|wineusb|winexinput)\.inf`).MatchString(line):
 					case regex(`(^|[^a-z])(oledb32|msdaps|msdasql|msado15|winprint|sapi)\.dll`).MatchString(line):
 					case regex(`(^|[^a-z])(wmplayer|wordpad|iexplore)\.exe`).MatchString(line):
 					case regex(`^system\.ini,\s*(mci|drivers32|mail)`).MatchString(line):
@@ -507,10 +548,38 @@ func run() error {
 		return err
 	}
 
-	// TODO: create a wineprefix and disable automatic prefix updates
+	wineEnv := append(os.Environ(), "WINEPREFIX="+*Output, "WINEARCH=win64", "USER=nswrap")
+
+	slog.Info("creating wineprefix")
+	{
+		winedebug := "err-ole,fixme-actctx"
+		if *Debug {
+			winedebug += ",+loaddll"
+			//winedebug += ",+imports"
+			winedebug += ",+module"
+		}
+		cmd := exec.Command(filepath.Join(*Prefix, "bin", "wine"), "wineboot", "--init")
+		cmd.Env = append(slices.Clone(wineEnv), "WINEDEBUG="+winedebug)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stdout
+		// TODO: filter out expected err:winediag:nodrv_CreateWindow, err:vulkan:vulkan_init_once, err:win:get_desktop_window
+		if err := cmd.Run(); err != nil {
+			return err
+		}
+		// TODO: fix failure only on -optimize amd64
+		// something to do with https://github.com/wine-mirror/wine/blob/22af42ac22279e6c0c671f033661f95c1761b4bb/dlls/ntdll/unix/env.c#L1952-L1964
+		// there's an i386 binary somewhere getting called by wine.inf, causing wine to try and use the wow64 loader, which we deleted earlier
+	}
+
+	slog.Info("disabling automatic wineprefix updates")
+	if err := os.WriteFile(filepath.Join(*Output, ".update-timestamp"), []byte("disable\n"), 0644); err != nil {
+		return err
+	}
+
 	if *Optimize {
 		// TODO: clean up empty dirs
 	}
+
 	// TODO: replace duplicated files in the prefix with symlinks
 	// TODO: set some registry keys required for nswrap
 
@@ -521,14 +590,21 @@ func run() error {
 		// TODO: ensure we have some libs we know we need
 	}
 
+	// TODO: remove this
+	filepath.WalkDir(*Prefix, func(path string, d fs.DirEntry, err error) error {
+		slog.Debug("wine file", "path", path)
+		return nil
+	})
+	filepath.WalkDir(*Output, func(path string, d fs.DirEntry, err error) error {
+		slog.Debug("wineprefix file", "path", path)
+		return nil
+	})
+
 	// TODO: replace this with a go impl
 	if tmp, err := exec.Command("du", "-sh", *Prefix).Output(); err == nil {
 		slog.Info(string(bytes.TrimSpace(tmp)))
 	}
 	if tmp, err := exec.Command("du", "-sh", *Output).Output(); err == nil {
-		slog.Info(string(bytes.TrimSpace(tmp)))
-	}
-	if tmp, err := exec.Command("find", *Prefix).Output(); err == nil {
 		slog.Info(string(bytes.TrimSpace(tmp)))
 	}
 

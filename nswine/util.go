@@ -186,7 +186,10 @@ func colordiff(w io.Writer, indent string, oldName string, old []byte, newName s
 				return err
 			}
 		}
-		if _, err := bw.Write(line); err != nil {
+		if _, err := bw.Write(bytes.TrimSuffix(line, []byte{'\n'})); err != nil {
+			return err
+		}
+		if _, err := bw.WriteString("\x1b[0m\n"); err != nil {
 			return err
 		}
 	}
