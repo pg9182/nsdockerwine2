@@ -24,9 +24,11 @@ RUN autoreconf -fi
 
 WORKDIR /opt/nswine/src/amd64
 RUN mkdir /opt/nswine/amd64 && ../configure --prefix /opt/nswine/amd64 --with-mingw=clang --disable-tests --enable-tools --host=x86_64-linux-gnu host_alias=x86_64-linux-gnu build_alias=x86_64-linux-gnu --enable-win64 CC='clang -target x86_64-linux-gnu' && make -j `nproc` && make install
+RUN clang -target x86_64-linux-gnu -o /opt/nswine/amd64/bin/nswrap -Wall -Wextra ../nswrap.c
 
 WORKDIR /opt/nswine/src/arm64
 RUN mkdir /opt/nswine/arm64 && ../configure --prefix /opt/nswine/arm64 --with-mingw=clang --disable-tests --enable-tools --host=aarch64-linux-gnu host_alias=aarch64-linux-gnu build_alias=x86_64-linux-gnu --enable-archs=arm64ec,aarch64 --with-wine-tools=../amd64 CC='clang -target aarch64-linux-gnu' && make -j `nproc` && make install
+RUN clang -target aarch64-linux-gnu -o /opt/nswine/arm64/bin/nswrap -Wall -Wextra ../nswrap.c
 
 WORKDIR /opt/nswine/amd64
 RUN WINEPREFIX=/opt/nswine/amd64/prefix ./bin/wine wineboot --init && WINEPREFIX=/opt/nswine/amd64/prefix ./bin/wineserver -w && rm -rf ./prefix/include ./share/man ./share/applications ./lib/wine/*/*.a
@@ -36,5 +38,5 @@ WORKDIR /opt/nswine/arm64
 RUN WINEPREFIX=/opt/nswine/arm64/prefix ./bin/wine wineboot --init && WINEPREFIX=/opt/nswine/arm64/prefix ./bin/wineserver -w && rm -rf ./prefix/include ./share/man ./share/applications ./lib/wine/*/*.a
 RUN curl -sL https://launchpad.net/~fex-emu/+archive/ubuntu/fex/+files/fex-emu-wine_$FEX_VERSION~j_arm64.deb | bsdtar xOf - 'data.tar.*' | bsdtar -C ./prefix/drive_c/windows/system32 -s '#.*/##' -xvf - '**/libarm64ecfex.dll'
 
-# TODO: nswrap, remove headers and static libs, lib rpath? (otherwise libunwind, libgnutls, and libfreetype will be required on the host), wineprefix cleanup (extra files, dedup, disable auto-update, etc)
+# TODO: lib rpath? (otherwise libunwind, libgnutls, and libfreetype will be required on the host), wineprefix cleanup (extra files, dedup, disable auto-update, etc)
 # TODO: build fex?
