@@ -612,9 +612,6 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
-/* Define to the soname of the libEGL library. */
-#undef SONAME_LIBEGL
-
 /* Define to the soname of the libfreetype library. */
 #undef SONAME_LIBFREETYPE
 

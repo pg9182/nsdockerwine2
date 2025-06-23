@@ -1151,15 +1151,7 @@ WINE_ERROR_WITH(pthread,[test "x$ac_cv_func_pthread_create" != xyes -a "x$PTHREA
 [pthread ${notice_platform}development files not found.
 Wine cannot support threads without libpthread.])
 
-dnl **** Check for EGL ****
-
-if test "x$with_opengl" != "xno"
-then
-    WINE_PACKAGE_FLAGS(EGL,[egl],[-lEGL],,,
-        [WINE_CHECK_SONAME(EGL,eglGetProcAddress,,,[$EGL_LIBS])])
-fi
-WINE_NOTICE_WITH(opengl, [test -z "$ac_cv_lib_soname_EGL"],
-    [EGL ${notice_platform}development files not found])
+with_opengl=no
 
 have_x=no
 X_CFLAGS=""
@@ -1952,8 +1944,10 @@ WINE_CONFIG_MAKEFILE(dlls/ctl3d32)
 WINE_CONFIG_MAKEFILE(dlls/ctl3dv2.dll16)
 WINE_CONFIG_MAKEFILE(dlls/d2d1)
 WINE_CONFIG_MAKEFILE(dlls/d2d1/tests)
+WINE_CONFIG_MAKEFILE(dlls/d3d9)
 WINE_CONFIG_MAKEFILE(dlls/d3d10_1)
 WINE_CONFIG_MAKEFILE(dlls/d3d10core)
+WINE_CONFIG_MAKEFILE(dlls/d3d11)
 WINE_CONFIG_MAKEFILE(dlls/d3dcompiler_33)
 WINE_CONFIG_MAKEFILE(dlls/d3dcompiler_34)
 WINE_CONFIG_MAKEFILE(dlls/d3dcompiler_35)
@@ -2056,8 +2050,6 @@ WINE_CONFIG_MAKEFILE(dlls/dwrite/tests)
 WINE_CONFIG_MAKEFILE(dlls/dx8vb)
 WINE_CONFIG_MAKEFILE(dlls/dxcore)
 WINE_CONFIG_MAKEFILE(dlls/dxcore/tests)
-WINE_CONFIG_MAKEFILE(dlls/dxdiagn)
-WINE_CONFIG_MAKEFILE(dlls/dxdiagn/tests)
 WINE_CONFIG_MAKEFILE(dlls/dxgi)
 WINE_CONFIG_MAKEFILE(dlls/dxgi/tests)
 WINE_CONFIG_MAKEFILE(dlls/dxtrans)
@@ -2333,8 +2325,6 @@ WINE_CONFIG_MAKEFILE(dlls/newdev)
 WINE_CONFIG_MAKEFILE(dlls/ninput)
 WINE_CONFIG_MAKEFILE(dlls/ninput/tests)
 WINE_CONFIG_MAKEFILE(dlls/normaliz)
-WINE_CONFIG_MAKEFILE(dlls/npmshtml)
-WINE_CONFIG_MAKEFILE(dlls/npptools)
 WINE_CONFIG_MAKEFILE(dlls/nsi)
 WINE_CONFIG_MAKEFILE(dlls/nsi/tests)
 WINE_CONFIG_MAKEFILE(dlls/nsiproxy.sys)

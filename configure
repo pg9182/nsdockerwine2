@@ -659,8 +659,6 @@ GNUTLS_LIBS
 GNUTLS_CFLAGS
 INOTIFY_LIBS
 INOTIFY_CFLAGS
-EGL_LIBS
-EGL_CFLAGS
 PTHREAD_LIBS
 ZLIB_PE_LIBS
 ZLIB_PE_CFLAGS
@@ -895,7 +893,6 @@ enable_amsi
 enable_amstream
 enable_apisetschema
 enable_apphelp
-enable_appxdeploymentclient
 enable_atl
 enable_atl100
 enable_atl110
@@ -910,7 +907,6 @@ enable_avrt
 enable_bcp47langs
 enable_bcrypt
 enable_bcryptprimitives
-enable_bluetoothapis
 enable_browseui
 enable_cabinet
 enable_cards
@@ -943,8 +939,10 @@ enable_cryptui
 enable_ctapi32
 enable_ctl3d32
 enable_d2d1
+enable_d3d9
 enable_d3d10_1
 enable_d3d10core
+enable_d3d11
 enable_d3dcompiler_33
 enable_d3dcompiler_34
 enable_d3dcompiler_35
@@ -973,7 +971,6 @@ enable_ddrawex
 enable_devenum
 enable_dhcpcsvc
 enable_dhcpcsvc6
-enable_dhtmled_ocx
 enable_diasymreader
 enable_difxapi
 enable_dinput
@@ -1010,7 +1007,6 @@ enable_dwmapi
 enable_dwrite
 enable_dx8vb
 enable_dxcore
-enable_dxdiagn
 enable_dxgi
 enable_dxtrans
 enable_dxva2
@@ -1099,7 +1095,6 @@ enable_mlang
 enable_mmcndmgr
 enable_mmdevapi
 enable_mountmgr_sys
-enable_mp3dmod
 enable_mpr
 enable_mprapi
 enable_msacm32_drv
@@ -1191,8 +1186,6 @@ enable_netutils
 enable_newdev
 enable_ninput
 enable_normaliz
-enable_npmshtml
-enable_npptools
 enable_nsi
 enable_nsiproxy_sys
 enable_ntdll
@@ -1226,7 +1219,6 @@ enable_propsys
 enable_psapi
 enable_pstorec
 enable_pwrshplugin
-enable_qcap
 enable_qdvd
 enable_qedit
 enable_quartz
@@ -1249,8 +1241,6 @@ enable_rtworkq
 enable_samlib
 enable_sapi
 enable_sas
-enable_scarddlg
-enable_scardsvr
 enable_sccbase
 enable_schannel
 enable_schedsvc
@@ -1324,7 +1314,6 @@ enable_version
 enable_vga
 enable_virtdisk
 enable_vssapi
-enable_vulkan_1
 enable_w32skrnl
 enable_wbemdisp
 enable_wbemprox
@@ -1395,7 +1384,6 @@ enable_wow64
 enable_wow64cpu
 enable_wow64win
 enable_wpc
-enable_wpcap
 enable_ws2_32
 enable_wsdapi
 enable_wshom_ocx
@@ -1482,10 +1470,8 @@ enable_zlib
 enable_loader
 enable_nls
 enable_po
-enable_arp
 enable_attrib
 enable_cacls
-enable_certutil
 enable_chcp_com
 enable_cmd
 enable_conhost
@@ -1494,7 +1480,6 @@ enable_dllhost
 enable_dplaysvr
 enable_dpnsvr
 enable_dpvsetup
-enable_eject
 enable_expand
 enable_explorer
 enable_extrac32
@@ -1502,16 +1487,13 @@ enable_fc
 enable_find
 enable_findstr
 enable_fsutil
-enable_hh
 enable_hostname
 enable_icacls
 enable_icinfo
-enable_ipconfig
 enable_klist
 enable_lodctr
 enable_makecab
 enable_mofcomp
-enable_mshta
 enable_msidb
 enable_msiexec
 enable_msinfo32
@@ -1545,7 +1527,6 @@ enable_timeout
 enable_uninstaller
 enable_unlodctr
 enable_view
-enable_wevtutil
 enable_where
 enable_whoami
 enable_wineboot
@@ -1558,8 +1539,6 @@ enable_winepath
 enable_winetest
 enable_winevdm
 enable_write
-enable_wusa
-enable_xcopy
 enable_server
 enable_tools
 enable_sfnt2fon
@@ -1622,8 +1601,6 @@ XSLT_PE_CFLAGS
 XSLT_PE_LIBS
 ZLIB_PE_CFLAGS
 ZLIB_PE_LIBS
-EGL_CFLAGS
-EGL_LIBS
 INOTIFY_CFLAGS
 INOTIFY_LIBS
 GNUTLS_CFLAGS
@@ -2379,8 +2356,6 @@ Some influential environment variables:
               C compiler flags for the PE zlib, overriding the bundled version
   ZLIB_PE_LIBS
               Linker flags for the PE zlib, overriding the bundled version
-  EGL_CFLAGS  C compiler flags for egl, overriding pkg-config
-  EGL_LIBS    Linker flags for egl, overriding pkg-config
   INOTIFY_CFLAGS
               C compiler flags for libinotify, overriding pkg-config
   INOTIFY_LIBS
@@ -13480,112 +13455,7 @@ esac
 
 fi
 
-
-if test "x$with_opengl" != "xno"
-then
-    rm -f conftest.err
-if ${EGL_CFLAGS:+false} :
-then :
-  if test ${PKG_CONFIG+y}
-then :
-  EGL_CFLAGS=`$PKG_CONFIG --cflags egl 2>conftest.err`
-fi
-fi
-
-if ${EGL_LIBS:+false} :
-then :
-  if test ${PKG_CONFIG+y}
-then :
-  EGL_LIBS=`$PKG_CONFIG --libs egl 2>/dev/null`
-fi
-fi
-
-EGL_LIBS=${EGL_LIBS:-"-lEGL"}
-printf "%s\n" "$as_me:${as_lineno-$LINENO}: egl cflags: $EGL_CFLAGS" >&5
-printf "%s\n" "$as_me:${as_lineno-$LINENO}: egl libs: $EGL_LIBS" >&5
-if test -s conftest.err; then
-     printf %s "$as_me:${as_lineno-$LINENO}: egl errors: " >&5
-     cat conftest.err >&5
-fi
-rm -f conftest.err
-ac_save_CPPFLAGS=$CPPFLAGS
-CPPFLAGS="$CPPFLAGS $EGL_CFLAGS"
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for -lEGL" >&5
-printf %s "checking for -lEGL... " >&6; }
-if test ${ac_cv_lib_soname_EGL+y}
-then :
-  printf %s "(cached) " >&6
-else case e in #(
-  e) ac_check_soname_save_LIBS=$LIBS
-LIBS="-lEGL $EGL_LIBS $LIBS"
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.
-   The 'extern "C"' is for builds by C++ compilers;
-   although this is not generally supported in C code supporting it here
-   has little cost and some practical benefit (sr 110532).  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char eglGetProcAddress (void);
-int
-main (void)
-{
-return eglGetProcAddress ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"
-then :
-  case "$LIBEXT" in
-    dll) ac_cv_lib_soname_EGL=`$ac_cv_path_LDD conftest.exe | grep "EGL" | sed -e "s/dll.*/dll/"';2,$d'` ;;
-    dylib) ac_cv_lib_soname_EGL=`$OTOOL -L conftest$ac_exeext | grep "libEGL\\.[0-9A-Za-z.]*dylib" | sed -e "s/^.*\/\(libEGL\.[0-9A-Za-z.]*dylib\).*$/\1/"';2,$d'` ;;
-    *) ac_cv_lib_soname_EGL=`$READELF -d conftest$ac_exeext | grep "NEEDED.*libEGL\\.$LIBEXT" | sed -e "s/^.*\\[\\(libEGL\\.$LIBEXT[^	 ]*\\)\\].*$/\1/"';2,$d'`
-       if ${ac_cv_lib_soname_EGL:+false} :
-then :
-  ac_cv_lib_soname_EGL=`$LDD conftest$ac_exeext | grep "libEGL\\.$LIBEXT" | sed -e "s/^.*\(libEGL\.$LIBEXT[^	 ]*\).*$/\1/"';2,$d'`
-fi ;;
-  esac
-else case e in #(
-  e) ac_cv_lib_soname_EGL= ;;
-esac
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam \
-    conftest$ac_exeext conftest.$ac_ext
-  LIBS=$ac_check_soname_save_LIBS ;;
-esac
-fi
-if ${ac_cv_lib_soname_EGL:+false} :
-then :
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: not found" >&5
-printf "%s\n" "not found" >&6; }
-
-else case e in #(
-  e) { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_soname_EGL" >&5
-printf "%s\n" "$ac_cv_lib_soname_EGL" >&6; }
-
-printf "%s\n" "#define SONAME_LIBEGL \"$ac_cv_lib_soname_EGL\"" >>confdefs.h
-
-        ;;
-esac
-fi
-CPPFLAGS=$ac_save_CPPFLAGS
-
-fi
-if test -z "$ac_cv_lib_soname_EGL"
-then :
-  case "x$with_opengl" in
-  x)   as_fn_append wine_notices "|EGL ${notice_platform}development files not found" ;;
-  xno) ;;
-  *)   as_fn_error $? "EGL ${notice_platform}development files not found
-This is an error since --with-opengl was requested." "$LINENO" 5 ;;
-esac
-
-fi
+with_opengl=no
 
 have_x=no
 X_CFLAGS=""
@@ -16655,7 +16525,6 @@ wine_fn_config_makefile dlls/amstream/tests enable_tests
 wine_fn_config_makefile dlls/apisetschema enable_apisetschema
 wine_fn_config_makefile dlls/apphelp enable_apphelp
 wine_fn_config_makefile dlls/apphelp/tests enable_tests
-wine_fn_config_makefile dlls/appxdeploymentclient enable_appxdeploymentclient
 wine_fn_config_makefile dlls/atl enable_atl
 wine_fn_config_makefile dlls/atl/tests enable_tests
 wine_fn_config_makefile dlls/atl100 enable_atl100
@@ -16678,8 +16547,6 @@ wine_fn_config_makefile dlls/bcp47langs enable_bcp47langs
 wine_fn_config_makefile dlls/bcrypt enable_bcrypt
 wine_fn_config_makefile dlls/bcrypt/tests enable_tests
 wine_fn_config_makefile dlls/bcryptprimitives enable_bcryptprimitives
-wine_fn_config_makefile dlls/bluetoothapis enable_bluetoothapis
-wine_fn_config_makefile dlls/bluetoothapis/tests enable_tests
 wine_fn_config_makefile dlls/browseui enable_browseui
 wine_fn_config_makefile dlls/browseui/tests enable_tests
 wine_fn_config_makefile dlls/cabinet enable_cabinet
@@ -16735,8 +16602,10 @@ wine_fn_config_makefile dlls/ctl3d32 enable_ctl3d32
 wine_fn_config_makefile dlls/ctl3dv2.dll16 enable_win16
 wine_fn_config_makefile dlls/d2d1 enable_d2d1
 wine_fn_config_makefile dlls/d2d1/tests enable_tests
+wine_fn_config_makefile dlls/d3d9 enable_d3d9
 wine_fn_config_makefile dlls/d3d10_1 enable_d3d10_1
 wine_fn_config_makefile dlls/d3d10core enable_d3d10core
+wine_fn_config_makefile dlls/d3d11 enable_d3d11
 wine_fn_config_makefile dlls/d3dcompiler_33 enable_d3dcompiler_33
 wine_fn_config_makefile dlls/d3dcompiler_34 enable_d3dcompiler_34
 wine_fn_config_makefile dlls/d3dcompiler_35 enable_d3dcompiler_35
@@ -16779,7 +16648,6 @@ wine_fn_config_makefile dlls/devenum/tests enable_tests
 wine_fn_config_makefile dlls/dhcpcsvc enable_dhcpcsvc
 wine_fn_config_makefile dlls/dhcpcsvc/tests enable_tests
 wine_fn_config_makefile dlls/dhcpcsvc6 enable_dhcpcsvc6
-wine_fn_config_makefile dlls/dhtmled.ocx enable_dhtmled_ocx
 wine_fn_config_makefile dlls/diasymreader enable_diasymreader
 wine_fn_config_makefile dlls/difxapi enable_difxapi
 wine_fn_config_makefile dlls/dinput enable_dinput
@@ -16840,8 +16708,6 @@ wine_fn_config_makefile dlls/dwrite/tests enable_tests
 wine_fn_config_makefile dlls/dx8vb enable_dx8vb
 wine_fn_config_makefile dlls/dxcore enable_dxcore
 wine_fn_config_makefile dlls/dxcore/tests enable_tests
-wine_fn_config_makefile dlls/dxdiagn enable_dxdiagn
-wine_fn_config_makefile dlls/dxdiagn/tests enable_tests
 wine_fn_config_makefile dlls/dxgi enable_dxgi
 wine_fn_config_makefile dlls/dxgi/tests enable_tests
 wine_fn_config_makefile dlls/dxtrans enable_dxtrans
@@ -16982,8 +16848,6 @@ wine_fn_config_makefile dlls/mmsystem.dll16 enable_win16
 wine_fn_config_makefile dlls/monodebg.vxd enable_win16
 wine_fn_config_makefile dlls/mountmgr.sys enable_mountmgr_sys
 wine_fn_config_makefile dlls/mouse.drv16 enable_win16
-wine_fn_config_makefile dlls/mp3dmod enable_mp3dmod
-wine_fn_config_makefile dlls/mp3dmod/tests enable_tests
 wine_fn_config_makefile dlls/mpr enable_mpr
 wine_fn_config_makefile dlls/mpr/tests enable_tests
 wine_fn_config_makefile dlls/mprapi enable_mprapi
@@ -17119,8 +16983,6 @@ wine_fn_config_makefile dlls/newdev enable_newdev
 wine_fn_config_makefile dlls/ninput enable_ninput
 wine_fn_config_makefile dlls/ninput/tests enable_tests
 wine_fn_config_makefile dlls/normaliz enable_normaliz
-wine_fn_config_makefile dlls/npmshtml enable_npmshtml
-wine_fn_config_makefile dlls/npptools enable_npptools
 wine_fn_config_makefile dlls/nsi enable_nsi
 wine_fn_config_makefile dlls/nsi/tests enable_tests
 wine_fn_config_makefile dlls/nsiproxy.sys enable_nsiproxy_sys
@@ -17181,8 +17043,6 @@ wine_fn_config_makefile dlls/psapi/tests enable_tests
 wine_fn_config_makefile dlls/pstorec enable_pstorec
 wine_fn_config_makefile dlls/pstorec/tests enable_tests
 wine_fn_config_makefile dlls/pwrshplugin enable_pwrshplugin
-wine_fn_config_makefile dlls/qcap enable_qcap
-wine_fn_config_makefile dlls/qcap/tests enable_tests
 wine_fn_config_makefile dlls/qdvd enable_qdvd
 wine_fn_config_makefile dlls/qdvd/tests enable_tests
 wine_fn_config_makefile dlls/qedit enable_qedit
@@ -17218,8 +17078,6 @@ wine_fn_config_makefile dlls/samlib enable_samlib
 wine_fn_config_makefile dlls/sapi enable_sapi
 wine_fn_config_makefile dlls/sapi/tests enable_tests
 wine_fn_config_makefile dlls/sas enable_sas
-wine_fn_config_makefile dlls/scarddlg enable_scarddlg
-wine_fn_config_makefile dlls/scardsvr enable_scardsvr
 wine_fn_config_makefile dlls/sccbase enable_sccbase
 wine_fn_config_makefile dlls/schannel enable_schannel
 wine_fn_config_makefile dlls/schannel/tests enable_tests
@@ -17344,8 +17202,6 @@ wine_fn_config_makefile dlls/vnbt.vxd enable_win16
 wine_fn_config_makefile dlls/vnetbios.vxd enable_win16
 wine_fn_config_makefile dlls/vssapi enable_vssapi
 wine_fn_config_makefile dlls/vtdapi.vxd enable_win16
-wine_fn_config_makefile dlls/vulkan-1 enable_vulkan_1
-wine_fn_config_makefile dlls/vulkan-1/tests enable_tests
 wine_fn_config_makefile dlls/vwin32.vxd enable_win16
 wine_fn_config_makefile dlls/w32skrnl enable_w32skrnl
 wine_fn_config_makefile dlls/w32sys.dll16 enable_win16
@@ -17471,8 +17327,6 @@ wine_fn_config_makefile dlls/wow64cpu enable_wow64cpu
 wine_fn_config_makefile dlls/wow64win enable_wow64win
 wine_fn_config_makefile dlls/wpc enable_wpc
 wine_fn_config_makefile dlls/wpc/tests enable_tests
-wine_fn_config_makefile dlls/wpcap enable_wpcap
-wine_fn_config_makefile dlls/wpcap/tests enable_tests
 wine_fn_config_makefile dlls/ws2_32 enable_ws2_32
 wine_fn_config_makefile dlls/ws2_32/tests enable_tests
 wine_fn_config_makefile dlls/wsdapi enable_wsdapi
@@ -17569,10 +17423,8 @@ wine_fn_config_makefile libs/zlib enable_zlib
 wine_fn_config_makefile loader enable_loader
 wine_fn_config_makefile nls enable_nls
 wine_fn_config_makefile po enable_po
-wine_fn_config_makefile programs/arp enable_arp
 wine_fn_config_makefile programs/attrib enable_attrib
 wine_fn_config_makefile programs/cacls enable_cacls
-wine_fn_config_makefile programs/certutil enable_certutil
 wine_fn_config_makefile programs/chcp.com enable_chcp_com
 wine_fn_config_makefile programs/cmd enable_cmd
 wine_fn_config_makefile programs/cmd/tests enable_tests
@@ -17583,7 +17435,6 @@ wine_fn_config_makefile programs/dllhost enable_dllhost
 wine_fn_config_makefile programs/dplaysvr enable_dplaysvr
 wine_fn_config_makefile programs/dpnsvr enable_dpnsvr
 wine_fn_config_makefile programs/dpvsetup enable_dpvsetup
-wine_fn_config_makefile programs/eject enable_eject
 wine_fn_config_makefile programs/expand enable_expand
 wine_fn_config_makefile programs/explorer enable_explorer
 wine_fn_config_makefile programs/explorer/tests enable_tests
@@ -17596,16 +17447,13 @@ wine_fn_config_makefile programs/findstr enable_findstr
 wine_fn_config_makefile programs/findstr/tests enable_tests
 wine_fn_config_makefile programs/fsutil enable_fsutil
 wine_fn_config_makefile programs/fsutil/tests enable_tests
-wine_fn_config_makefile programs/hh enable_hh
 wine_fn_config_makefile programs/hostname enable_hostname
 wine_fn_config_makefile programs/icacls enable_icacls
 wine_fn_config_makefile programs/icinfo enable_icinfo
-wine_fn_config_makefile programs/ipconfig enable_ipconfig
 wine_fn_config_makefile programs/klist enable_klist
 wine_fn_config_makefile programs/lodctr enable_lodctr
 wine_fn_config_makefile programs/makecab enable_makecab
 wine_fn_config_makefile programs/mofcomp enable_mofcomp
-wine_fn_config_makefile programs/mshta enable_mshta
 wine_fn_config_makefile programs/msidb enable_msidb
 wine_fn_config_makefile programs/msiexec enable_msiexec
 wine_fn_config_makefile programs/msinfo32 enable_msinfo32
@@ -17645,7 +17493,6 @@ wine_fn_config_makefile programs/timeout/tests enable_tests
 wine_fn_config_makefile programs/uninstaller enable_uninstaller
 wine_fn_config_makefile programs/unlodctr enable_unlodctr
 wine_fn_config_makefile programs/view enable_view
-wine_fn_config_makefile programs/wevtutil enable_wevtutil
 wine_fn_config_makefile programs/where enable_where
 wine_fn_config_makefile programs/whoami enable_whoami
 wine_fn_config_makefile programs/wineboot enable_wineboot
@@ -17659,9 +17506,6 @@ wine_fn_config_makefile programs/winetest enable_winetest
 wine_fn_config_makefile programs/winevdm enable_winevdm
 wine_fn_config_makefile programs/winoldap.mod16 enable_win16
 wine_fn_config_makefile programs/write enable_write
-wine_fn_config_makefile programs/wusa enable_wusa
-wine_fn_config_makefile programs/xcopy enable_xcopy
-wine_fn_config_makefile programs/xcopy/tests enable_tests
 wine_fn_config_makefile server enable_server
 test "x$enable_tools" = xno || wine_fn_config_makefile tools enable_tools
 test "x$enable_tools" = xno || wine_fn_config_makefile tools/sfnt2fon enable_sfnt2fon
@@ -18654,8 +18498,6 @@ XSLT_PE_LIBS = $XSLT_PE_LIBS
 ZLIB_PE_CFLAGS = $ZLIB_PE_CFLAGS
 ZLIB_PE_LIBS = $ZLIB_PE_LIBS
 PTHREAD_LIBS = $PTHREAD_LIBS
-EGL_CFLAGS = $EGL_CFLAGS
-EGL_LIBS = $EGL_LIBS
 INOTIFY_CFLAGS = $INOTIFY_CFLAGS
 INOTIFY_LIBS = $INOTIFY_LIBS
 GNUTLS_CFLAGS = $GNUTLS_CFLAGS
