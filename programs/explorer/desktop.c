@@ -40,7 +40,7 @@ WINE_DEFAULT_DEBUG_CHANNEL(explorer);
 #define DESKTOP_CLASS_ATOM ((LPCWSTR)MAKEINTATOM(32769))
 #define DESKTOP_ALL_ACCESS 0x01ff
 
-static const WCHAR default_driver[] = L"mac,x11,wayland";
+static const WCHAR default_driver[] = L"null";
 
 static BOOL using_root = TRUE;
 
@@ -2571,7 +2571,7 @@ static void shellwindows_init(void)
 
     hr = CoRegisterClassObject(&CLSID_ShellWindows,
         (IUnknown*)&shellwindows_classfactory.IClassFactory_iface,
-        CLSCTX_LOCAL_SERVER,
+        /*CLSCTX_LOCAL_SERVER*/0,
         REGCLS_MULTIPLEUSE,
         &shellwindows_classfactory.classreg);
 

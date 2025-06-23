@@ -1533,9 +1533,6 @@ static void install_root_pnp_devices(void)
     }
     root_devices[] =
     {
-        {"root\\wine\\winebth", "root\\winebth\0", "C:\\windows\\inf\\winebth.inf"},
-        {"root\\wine\\winebus", "root\\winebus\0", "C:\\windows\\inf\\winebus.inf"},
-        {"root\\wine\\wineusb", "root\\wineusb\0", "C:\\windows\\inf\\wineusb.inf"},
     };
     SP_DEVINFO_DATA device = {sizeof(device)};
     unsigned int i;
@@ -1659,7 +1656,7 @@ static void update_wineprefix( BOOL force )
                 if (machines[count].Native)
                     process = start_rundll32( inf_path, L"DefaultInstall", IMAGE_FILE_MACHINE_TARGET_HOST );
                 else
-                    process = start_rundll32( inf_path, L"Wow64Install", machines[count].Machine );
+                    process = NULL; //start_rundll32( inf_path, L"Wow64Install", machines[count].Machine ); // TODO: why does this still run when not building wow64 (resulting in 'failed to open L"C:\\windows\\syswow64\\rundll32.exe": c0000135')
                 count++;
             }
             DestroyWindow( hwnd );

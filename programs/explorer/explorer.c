@@ -390,7 +390,7 @@ static void make_explorer_window(parameters_struct *params)
     HDC hdc;
     MSG msg;
 
-    CoCreateInstance(&CLSID_ShellWindows, NULL, CLSCTX_LOCAL_SERVER,
+    CoCreateInstance(&CLSID_ShellWindows, NULL, /*CLSCTX_LOCAL_SERVER*/0,
             &IID_IShellWindows, (void **)&sw);
 
     if (params->root[0])

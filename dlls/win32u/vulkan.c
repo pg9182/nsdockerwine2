@@ -671,7 +671,7 @@ void vulkan_detach_surfaces( struct list *surfaces )
 
 static void vulkan_init_once(void)
 {
-    ERR( "Wine was built without Vulkan support.\n" );
+    TRACE( "Wine was built without Vulkan support.\n" );
 }
 
 #endif /* SONAME_LIBVULKAN */

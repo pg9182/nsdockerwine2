@@ -3,6 +3,7 @@
 <assemblyIdentity type="win32" name="Wine.Explorer" version="0.0.0.0"/>
 <dependency>
     <dependentAssembly>
+        <!-- commented out to work around '0054:fixme:actctx:parse_depend_manifests Could not find dependent assembly L"Microsoft.Windows.Common-Controls" (6.0.0.0)' during wineboot
         <assemblyIdentity
             type="win32"
             name="Microsoft.Windows.Common-Controls"
@@ -11,6 +12,7 @@
             publicKeyToken="6595b64144ccf1df"
             language="*"
         />
+        -->
     </dependentAssembly>
 </dependency>
 <application xmlns="urn:schemas-microsoft-com:asm.v3">

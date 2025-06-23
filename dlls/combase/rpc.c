@@ -293,10 +293,6 @@ static RPC_BINDING_HANDLE get_irot_handle(void)
             hr = HRESULT_FROM_WIN32(GetExceptionCode()); \
         } \
         __ENDTRY \
-        if (hr == HRESULT_FROM_WIN32(RPC_S_SERVER_UNAVAILABLE)) { \
-            if (start_rpcss()) \
-                continue; \
-        } \
         break; \
     } \
     return hr;

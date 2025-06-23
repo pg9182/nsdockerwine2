@@ -284,43 +284,7 @@ static HRESULT WINAPI IPersistFile_fnLoad(IPersistFile* iface, LPCOLESTR pszFile
 
 BOOL run_winemenubuilder( const WCHAR *args )
 {
-    LONG len;
-    LPWSTR buffer;
-    STARTUPINFOW si;
-    PROCESS_INFORMATION pi;
-    BOOL ret;
-    WCHAR app[MAX_PATH];
-    void *redir;
-
-    GetSystemDirectoryW( app, MAX_PATH );
-    lstrcatW( app, L"\\winemenubuilder.exe" );
-
-    len = (lstrlenW( app ) + lstrlenW( args ) + 1) * sizeof(WCHAR);
-    buffer = malloc( len );
-    if( !buffer )
-        return FALSE;
-
-    lstrcpyW( buffer, app );
-    lstrcatW( buffer, args );
-
-    TRACE("starting %s\n",debugstr_w(buffer));
-
-    memset(&si, 0, sizeof(si));
-    si.cb = sizeof(si);
-
-    Wow64DisableWow64FsRedirection( &redir );
-    ret = CreateProcessW( app, buffer, NULL, NULL, FALSE, DETACHED_PROCESS, NULL, NULL, &si, &pi );
-    Wow64RevertWow64FsRedirection( redir );
-
-    free( buffer );
-
-    if (ret)
-    {
-        CloseHandle( pi.hProcess );
-        CloseHandle( pi.hThread );
-    }
-
-    return ret;
+    return TRUE;
 }
 
 static BOOL StartLinkProcessor( LPCOLESTR szLink )
