@@ -562,10 +562,6 @@ This is an error since --enable-archs=$wine_arch was requested.])])
       for wine_debug_format in $wine_crossdebug
       do
         case $wine_debug_format in
-          *dwarf)  dnl clang emits a warning without -Wl,-debug:dwarf, so ensure linker option is present
-                   WINE_TRY_PE_CFLAGS([-Wl,-debug:dwarf],[AS_VAR_APPEND([${wine_arch}_LDFLAGS],[" -Wl,-debug:dwarf"])
-                                                          CFLAGS="$CFLAGS -Wl,-debug:dwarf"])
-                   WINE_TRY_PE_CFLAGS([-gdwarf-4]) ;;
           pdb)     WINE_TRY_PE_CFLAGS([-gcodeview]) ;;
         esac
       done

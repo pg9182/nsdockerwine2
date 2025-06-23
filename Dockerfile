@@ -22,9 +22,9 @@ COPY --link ./ /opt/nswine/src/
 RUN autoreconf -fi
 
 WORKDIR /opt/nswine/src/amd64
-RUN mkdir /opt/nswine/amd64 && ../configure --prefix /opt/nswine/amd64 --with-mingw=clang --disable-tests --host=x86_64-linux-gnu host_alias=x86_64-linux-gnu build_alias=x86_64-linux-gnu --enable-win64 CC=clang && make -j `nproc` && make install
+RUN mkdir /opt/nswine/amd64 && ../configure --prefix /opt/nswine/amd64 --with-mingw=clang --disable-tests --host=x86_64-linux-gnu host_alias=x86_64-linux-gnu build_alias=x86_64-linux-gnu --enable-win64 CC='clang -target x86_64-linux-gnu' && make -j `nproc` && make install
 
 WORKDIR /opt/nswine/src/arm64
-RUN mkdir /opt/nswine/arm64 && ../configure --prefix /opt/nswine/arm64 --with-mingw=clang --disable-tests --host=aarch64-linux-gnu host_alias=aarch64-linux-gnu build_alias=x86_64-linux-gnu --enable-archs=arm64ec,aarch64 --with-wine-tools=../amd64 CC=clang && make install
+RUN mkdir /opt/nswine/arm64 && ../configure --prefix /opt/nswine/arm64 --with-mingw=clang --disable-tests --host=aarch64-linux-gnu host_alias=aarch64-linux-gnu build_alias=x86_64-linux-gnu --enable-archs=arm64ec,aarch64 --with-wine-tools=../amd64 CC='clang -target aarch64-linux-gnu' && make -j `nproc` && make install
 
 # TODO: nswrap, remove headers and static libs, lib rpath?. wineprefix, fex
